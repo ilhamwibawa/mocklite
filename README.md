@@ -112,10 +112,26 @@ GET /users
 GET /posts
 ```
 
-**Query Parameters:**
+**Features:**
 
-- `?include=posts` (on `/users` endpoint) -> Returns users with their posts.
-- `?include=user` (on `/posts` endpoint) -> Returns posts with their author.
+- **Pagination**: Use `?page=1&limit=10` (Defaults: page=1, limit=10).
+- **Relationships**: `?include=posts` to embed related data.
+- **Filtering**: Pass field names as query parameters (e.g., `?role=admin`).
+- **Partial Search**: String fields support partial matching (e.g., `?name=manuel` finds "Manuel").
+
+**Response Format:**
+
+```json
+{
+  "data": [ ... ],
+  "meta": {
+    "total": 100,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 10
+  }
+}
+```
 
 ### GET Detail
 

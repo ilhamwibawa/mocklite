@@ -66,17 +66,86 @@ export class MockServer {
       const tableName = table.table;
 
       // 1. GET List endpoint
+      // 1. GET List endpoint
       this.app.get(`/${tableName}`, async (c) => {
-        const includeParam = c.req.query("include"); // Retrieve query parameter ?include=...
-        let query = this.db.selectFrom(tableName).selectAll();
+        const queryParams = c.req.query();
+        const { include, page, limit, ...filters } = queryParams;
+
+        const includeParam = include;
+        const pageNum = Number(page) || 1;
+        const limitNum = Number(limit) || 10;
+        const offset = (pageNum - 1) * limitNum;
+
+        // Base query for counting
+        let countQuery = this.db
+          .selectFrom(tableName)
+          .select((eb: any) => eb.fn.countAll().as("total"));
+
+        // Base query for data
+        let dataQuery = this.db.selectFrom(tableName).selectAll();
+
+        // APPLY FILTERS
+        // APPLY FILTERS
+        for (const [key, value] of Object.entries(filters)) {
+          // Check if field exists in schema to prevent SQL injection or errors
+          const fieldDef = table.fields[key];
+          const isId = key === "id";
+
+          if ((fieldDef || isId) && value !== undefined) {
+            let op = "=";
+            let val: any = value;
+
+            // Logic to determine if we should use LIKE (Partial Match)
+            if (!isId) {
+              // If it's a string config that doesn't explicitly look like a boolean/number
+              // OR if it's an object config without 'boolean'/'number' type
+              const isString =
+                typeof fieldDef === "string" &&
+                !fieldDef.includes("boolean") &&
+                !fieldDef.includes("number") &&
+                !fieldDef.includes("int");
+
+              // You can expand this logic based on your types
+              if (isString) {
+                op = "like";
+                val = `%${value}%`;
+              }
+            }
+
+            countQuery = countQuery.where(key, op as any, val);
+            dataQuery = dataQuery.where(key, op as any, val);
+          }
+        }
+
+        // 1. Get total count
+        const countResult = await countQuery.executeTakeFirst();
+        const total = Number((countResult as any)?.total || 0);
+
+        // 2. Prepare query for data
 
         // RELATIONAL LOGIC HANDLING
         if (includeParam) {
-          query = this.applyRelation(query, tableName, includeParam);
+          dataQuery = this.applyRelation(
+            dataQuery,
+            tableName,
+            includeParam as string
+          );
         }
 
-        const data = await query.execute();
-        return c.json(this.transformResult(tableName, data));
+        // Apply pagination
+        dataQuery = dataQuery.limit(limitNum).offset(offset);
+
+        const data = await dataQuery.execute();
+
+        return c.json({
+          data: this.transformResult(tableName, data),
+          meta: {
+            total,
+            page: pageNum,
+            limit: limitNum,
+            totalPages: Math.ceil(total / limitNum),
+          },
+        });
       });
 
       // 2. GET Detail endpoint
