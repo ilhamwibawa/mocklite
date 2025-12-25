@@ -1,0 +1,35 @@
+{
+  "name": "mocklite",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "version": "0.0.1",
+  "bin": {
+    "mocklite": "./dist/mocklite.cjs"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "bun run build && node dist/mocklite.cjs dev",
+    "start": "node dist/mocklite.cjs",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/bun": "latest",
+    "@types/fs-extra": "^11.0.4",
+    "fs-extra": "^11.3.3",
+    "picocolors": "^1.1.1",
+    "tsup": "^8.5.1"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^10.1.0",
+    "@hono/node-server": "^1.19.7",
+    "better-sqlite3": "^12.5.0",
+    "cac": "^6.7.14",
+    "hono": "^4.11.2",
+    "kysely": "^0.28.9"
+  }
+}
