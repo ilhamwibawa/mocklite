@@ -17,22 +17,6 @@ export class MockServer {
     this.app.use("*", cors());
     this.app.use("*", logger());
 
-    this.app.get(
-      "/_admin/*",
-      serveStatic({
-        root: "./ui/dist",
-        rewriteRequestPath: (path) => path.replace(/^\/_admin/, ""),
-      })
-    );
-
-    // SPA Fallback
-    this.app.get(
-      "/_admin/*",
-      serveStatic({
-        path: "./ui/dist/index.html",
-      })
-    );
-
     this.generateRoutes();
   }
 

@@ -151,23 +151,3 @@ Content-Type: application/json
   "email": "john@example.com"
 }
 ```
-
-## 💻 Admin UI
-
-MockLite comes with a built-in Admin Dashboard to visualize your data and server status.
-
-### Accessing the Dashboard
-
-When the server is running, visit:
-
-```
-http://localhost:3000/_admin
-```
-
-### Building the UI
-
-If you are developing or modifying the UI source code (in the `ui/` directory), you need to rebuild it for the changes to take effect:
-
-```bash
-npm run ui:build
-```
