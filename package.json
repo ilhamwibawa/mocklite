@@ -17,7 +17,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ilhamwibawa/mocklite.git"
+    "url": "git+https://github.com/ilhamwibawa/mocklite.git"
   },
   "homepage": "https://github.com/ilhamwibawa/mocklite#readme",
   "bugs": {
@@ -31,7 +31,7 @@
   },
   "version": "0.0.1",
   "bin": {
-    "mocklite": "./dist/mocklite.cjs"
+    "mocklite": "dist/mocklite.cjs"
   },
   "scripts": {
     "build": "tsup",
