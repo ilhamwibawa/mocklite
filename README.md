@@ -1,153 +1,209 @@
-# MockLite
+# @ilhamwibawa/mocklite
 
-**Lightweight SQLite-based Mock Server with Faker.js Integration.**
+**Zero-Configuration, SQLite-based Mock Server for Modern Frontend Development.**
 
-MockLite is a zero-setup, configuration-driven mock server designed to help frontend developers prototype locally without a real backend. It uses an in-memory (or local file) SQLite database, auto-generates REST API routes based on a JSON config, and populates data using Faker.js.
+[![npm version](https://img.shields.io/npm/v/@ilhamwibawa/mocklite.svg)](https://www.npmjs.com/package/@ilhamwibawa/mocklite)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+MockLite is a powerful, lightweight mock server designed to speed up frontend development. It auto-generates a full REST API based on a simple JSON schema, populates it with realistic data using [Faker.js](https://fakerjs.dev), and even simulates network conditions like slow connections or chaos modes.
+
+![MockLite](image.png)
 
 ## ✨ Features
 
-- **Zero Boilerplate**: Just define a JSON config, and get a full CRUD API.
-- **Auto-generated Data**: Integrated with [Faker.js](https://fakerjs.dev/) to seed realistic data.
-- **Relational Support**: Supports `BelongsTo` and `HasMany` relationships via `fk:` definitions.
-- **Rich Querying**: Supports filtering and relation expansion via `?include=...`.
-- **Persistent/Reset Modes**: Database resets on restart to ensure a clean state (configurable).
+- **🚀 Zero Boilerplate**: Define a generic JSON config and get a full CRUD API instantly.
+- **🌱 Realistic Seeding**: Powered by Faker.js to generate thousands of realistic records.
+- **🔍 Advanced Querying**: Supports filtering, pagination, and Partial Search out of the box.
+- **🔗 Relational Data**: Automatically handles `BelongsTo` and `HasMany` relationships.
+- **⚠️ Network Simulation**: Built-in support for artificial latency (Delay) and Chaos Mode (Random Errors).
+- **💾 Local Persistence**: Uses SQLite, so your data persists between restarts (or resets if you choose).
+- **🛠️ Interactive Mode**: Shortcuts to re-seed or clear data while the server runs.
+
+---
 
 ## 🚀 Getting Started
 
-### Installation
+### 1. Installation
+
+You can run MockLite directly using `npx` or install it globally.
 
 ```bash
-npm install -g mocklite
-# OR run directly via npx/bun
-npx mocklite init
+# Run directly (Recommended)
+npx @ilhamwibawa/mocklite init
+
+# Or install globally
+npm install -g @ilhamwibawa/mocklite
 ```
 
-### 1. Initialize Configuration
+### 2. Initialize Project
 
-Run the init command to create a `mocklite.config.json` file in your project root:
+Run the initialization command in your project root. This creates a starter `mocklite.config.json` file.
 
 ```bash
-mocklite init
+npx @ilhamwibawa/mocklite init
 ```
 
-### 2. Configure Your Schema
+### 3. Start the Server
 
-Edit `mocklite.config.json` to define your database tables and fields.
+Start the server using your configuration.
+
+```bash
+npx @ilhamwibawa/mocklite start
+```
+
+You will see output indicating the server is running, listing available endpoints and active network simulations.
+
+---
+
+## 📚 Configuration Guide
+
+The `mocklite.config.json` file is the heart of your mock server.
+
+### Basic Structure
 
 ```json
 {
   "port": 3000,
   "database": "sqlite",
-  "schema": [
-    {
-      "table": "users",
-      "seed": 10,
-      "fields": {
-        "id": "pk",
-        "name": "faker.person.fullName",
-        "email": "faker.internet.email",
-        "role": {
-          "type": "enum",
-          "values": ["admin", "editor", "viewer"]
-        },
-        "isActive": {
-          "type": "faker.datatype.boolean",
-          "options": 0.8
-        }
-      }
-    },
-    {
-      "table": "posts",
-      "seed": 20,
-      "fields": {
-        "id": "pk",
-        "title": "faker.lorem.sentence",
-        "content": "faker.lorem.paragraph",
-        "authorId": "fk:users.id"
-      }
-    }
-  ]
+  "delay": 500,        // Optional: Global delay in ms
+  "errorRate": 0.0,    // Optional: Probability of request failure (0.0 - 1.0)
+  "schema": [ ... ]
 }
 ```
 
-### 3. Start the Server
+### Defining Tables (Schema)
 
-```bash
-mocklite dev
-```
-
-Output:
-
-```
-🚀 Server running at http://localhost:3000
-   Try: http://localhost:3000/users
-```
-
-## 📚 Configuration Guide
-
-### Field Types
-
-| Type Def                          | Description                                      | Example                            |
-| --------------------------------- | ------------------------------------------------ | ---------------------------------- |
-| `"pk"`                            | Primary Key (Integer, Auto-increment)            | `"id": "pk"`                       |
-| `"faker..."`                      | Any [Faker.js](https://fakerjs.dev/) path string | `"name": "faker.person.firstName"` |
-| `"fk:<table>.<col>"`              | Foreign Key relation                             | `"userId": "fk:users.id"`          |
-| `{ type: "enum", values: [...] }` | Randomly pick from values                        | `"role": { ... }`                  |
-
-### Relationships
-
-MockLite automatically detects relationships based on Foreign Keys (`fk:`).
-
-- **Belongs To**: If `posts` has `authorId` pointing to `users.id`.
-- **Has Many**: If `users` is referenced by `posts`.
-
-You can query these relations using the `include` parameter.
-
-## 📡 API Usage
-
-### GET List
-
-```http
-GET /users
-GET /posts
-```
-
-**Features:**
-
-- **Pagination**: Use `?page=1&limit=10` (Defaults: page=1, limit=10).
-- **Relationships**: `?include=posts` to embed related data.
-- **Filtering**: Pass field names as query parameters (e.g., `?role=admin`).
-- **Partial Search**: String fields support partial matching (e.g., `?name=manuel` finds "Manuel").
-
-**Response Format:**
+Each object in the `schema` array represents a database table.
 
 ```json
 {
-  "data": [ ... ],
-  "meta": {
-    "total": 100,
-    "page": 1,
-    "limit": 10,
-    "totalPages": 10
+  "table": "users",
+  "seed": 20, // Number of rows to auto-generate
+  "fields": {
+    "id": "pk", // Primary Key shortcut
+    "username": "faker.internet.userName",
+    "email": "faker.internet.email",
+    "avatar": "faker.image.avatar",
+    "role": {
+      "type": "enum",
+      "values": ["admin", "user", "guest"]
+    },
+    "isActive": {
+      "type": "faker.datatype.boolean",
+      "options": 0.9 // 90% true
+    }
   }
 }
 ```
 
-### GET Detail
+### Field Types
 
-```http
-GET /users/1
-GET /users/1?include=posts
+| Type Def                    | Description                                                              | Example                                                           |
+| :-------------------------- | :----------------------------------------------------------------------- | :---------------------------------------------------------------- |
+| `"pk"`                      | **Primary Key**. Auto-incrementing Integer.                              | `"id": "pk"`                                                      |
+| `"faker..."`                | Any valid **Faker.js** path. [See Faker Docs](https://fakerjs.dev/api/). | `"name": "faker.person.fullName"`                                 |
+| `"fk:<table>.<col>"`        | **Foreign Key**. Links to another table's column.                        | `"postId": "fk:posts.id"`                                         |
+| `{ type: "enum", ... }`     | **Enum**. Randomly selects from a provided list.                         | `"status": { "type": "enum", "values": ["draft", "published"] }`  |
+| `{ type: "faker...", ... }` | **Configured Faker**. Pass options to Faker methods.                     | `"age": { "type": "faker.number.int", "options": { "min": 18 } }` |
+
+### Relationships
+
+MockLite automatically sets up foreign keys and relationship handling.
+
+1.  **Define the Foreign Key**:
+    In your `posts` table definition:
+
+    ```json
+    "authorId": "fk:users.id"
+    ```
+
+2.  **Query Relational Data**:
+    Use the `include` query parameter to fetch related data.
+
+    - **Get Post with Author**: `GET /posts/1?include=author`
+    - **Get User with Posts**: `GET /users/1?include=posts`
+
+---
+
+## 📡 API Reference
+
+Once started, MockLite provides standard REST endpoints for every table defined in your schema.
+
+### Standard Routes
+
+| Method   | Endpoint          | Description                                        |
+| :------- | :---------------- | :------------------------------------------------- |
+| `GET`    | `/<resource>`     | List all records. Supports pagination & filtering. |
+| `GET`    | `/<resource>/:id` | Get a single record by ID.                         |
+| `POST`   | `/<resource>`     | Create a new record.                               |
+| `PUT`    | `/<resource>/:id` | Update an existing record.                         |
+| `DELETE` | `/<resource>/:id` | Delete a record.                                   |
+
+### query Parameters
+
+- **Pagination**: `?page=1&limit=20`
+- **Filtering**: `?role=admin&isActive=true`
+- **Search**: `?name=John` (Performs a partial `LIKE %John%` search on string fields)
+- **Relations**: `?include=posts` or `?include=author`
+
+---
+
+## ⚠️ Network Simulation
+
+Test how your app handles slow networks or server crashes.
+
+- **Delay**: Add `"delay": 1000` to your config to simulate a 1-second delay on every request.
+- **Chaos Mode**: Add `"errorRate": 0.1` to randomly fail 10% of requests with a `500 Internal Server Error`.
+
+---
+
+## ⌨️ CLI Commands
+
+| Command | Description                                 | Options              |
+| :------ | :------------------------------------------ | :------------------- |
+| `start` | Starts the server using the current config. | `--port`, `--schema` |
+| `init`  | Creates a new `mocklite.config.json`.       |                      |
+
+**Example:**
+
+```bash
+npx @ilhamwibawa/mocklite start --port 8080 --schema ./configs/v1.json
 ```
 
-### POST Create
+**Interactive Shortcuts:**
+While the server is running, press:
 
-```http
-POST /users
-Content-Type: application/json
+- `s`: **Re-seed** database (Clears data & runs seeder)
+- `c`: **Clear** console
+- `q`: **Quit** server
 
-{
-  "name": "John Doe",
-  "email": "john@example.com"
-}
-```
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1.  **Fork** the repository on GitHub.
+2.  **Clone** your fork locally.
+    ```bash
+    git clone https://github.com/YOUR_USERNAME/mocklite.git
+    cd mocklite
+    ```
+3.  **Install Dependencies** (using Bun or NPM).
+    ```bash
+    bun install
+    ```
+4.  **Create a Branch** for your feature or fix.
+    ```bash
+    git checkout -b feature/amazing-feature
+    ```
+5.  **Make your changes** and verify them with `bun run build`.
+6.  **Commit** and **Push**.
+    ```bash
+    git push origin feature/amazing-feature
+    ```
+7.  Open a **Pull Request** on the main repository.
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
