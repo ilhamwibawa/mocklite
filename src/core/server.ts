@@ -1,12 +1,14 @@
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
-import { serveStatic } from "@hono/node-server/serve-static";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { Kysely } from "kysely";
 import pc from "picocolors";
 import type { MockliteConfig } from "./types";
 import { jsonArrayFrom, jsonObjectFrom } from "kysely/helpers/sqlite";
+import { version } from "../../package.json";
+import Table from "cli-table3";
+import { Seeder } from "./seeder";
 
 export class MockServer {
   private app: Hono;
@@ -14,13 +16,63 @@ export class MockServer {
   constructor(private db: Kysely<any>, private config: MockliteConfig) {
     this.app = new Hono();
 
+    this.app.use("*", async (c, next) => {
+      const start = Date.now();
+      const method = c.req.method;
+      const url = c.req.url;
+
+      await next();
+
+      const end = Date.now();
+      const status = c.res.status;
+      const duration = `${end - start}ms`;
+
+      const statusColor =
+        status >= 500
+          ? pc.red
+          : status >= 400
+          ? pc.yellow
+          : status >= 300
+          ? pc.cyan
+          : pc.green;
+
+      console.log(
+        `  ${pc.bold(method.padEnd(6))} ` +
+          `${url.padEnd(30)} ` +
+          `${statusColor(status)} ` +
+          `${pc.dim(duration)}`
+      );
+    });
+
     this.app.use("*", cors());
-    this.app.use("*", logger());
+
+    // Network Simulation Middleware
+    this.app.use("*", async (c, next) => {
+      // 1. Chaos Mode (Global Error Rate)
+      if (this.config.errorRate) {
+        if (Math.random() < this.config.errorRate) {
+          throw new Error("Chaos Monkey struck! Request failed intentionally.");
+        }
+      }
+
+      // 2. Global Delay (Network Throttling)
+      if (this.config.delay) {
+        await new Promise((resolve) => setTimeout(resolve, this.config.delay));
+      }
+
+      await next();
+    });
+
+    // Global Error Handler
+    this.app.onError((err, c) => {
+      const status = 500;
+      return c.json({ error: err.message || "Internal Server Error" }, status);
+    });
 
     this.generateRoutes();
   }
 
-  private transformResult(tableName: string, data: any | any[]) {
+  private transformResult<T>(tableName: string, data: T | T[]) {
     const tableDef = this.config.schema.find((t) => t.table === tableName);
     if (!tableDef) return data;
 
@@ -94,7 +146,7 @@ export class MockServer {
 
           if ((fieldDef || isId) && value !== undefined) {
             let op = "=";
-            let val: any = value;
+            let val: unknown = value;
 
             // Logic to determine if we should use LIKE (Partial Match)
             if (!isId) {
@@ -185,8 +237,61 @@ export class MockServer {
             }),
             201
           );
-        } catch (error: any) {
-          return c.json({ error: error.message }, 400);
+        } catch (error: unknown) {
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          return c.json({ error: errorMessage }, 400);
+        }
+      });
+
+      // 4. PUT Update endpoint
+      this.app.put(`/${tableName}/:id`, async (c) => {
+        const id = c.req.param("id");
+        const body = await c.req.json();
+
+        try {
+          const result = await this.db
+            .updateTable(tableName)
+            .set(body)
+            .where("id", "=", id)
+            .executeTakeFirst();
+
+          if (Number(result.numUpdatedRows) === 0) {
+            return c.json({ error: "Not Found" }, 404);
+          }
+
+          return c.json(
+            this.transformResult(tableName, {
+              id,
+              ...body,
+            })
+          );
+        } catch (error: unknown) {
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          return c.json({ error: errorMessage }, 400);
+        }
+      });
+
+      // 5. DELETE Delete endpoint
+      this.app.delete(`/${tableName}/:id`, async (c) => {
+        const id = c.req.param("id");
+
+        try {
+          const result = await this.db
+            .deleteFrom(tableName)
+            .where("id", "=", id)
+            .executeTakeFirst();
+
+          if (Number(result.numDeletedRows) === 0) {
+            return c.json({ error: "Not Found" }, 404);
+          }
+
+          return c.json({ message: "Deleted successfully" });
+        } catch (error: unknown) {
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          return c.json({ error: errorMessage }, 400);
         }
       });
     }
@@ -285,7 +390,96 @@ export class MockServer {
       fetch: this.app.fetch,
       port: port,
     });
-    console.log(pc.green(`\n🚀 Server running at http://localhost:${port}`));
-    console.log(pc.cyan(`   Try: http://localhost:${port}/users`));
+
+    this.printBanner(port);
+    this.setupInteractiveMode(port);
+  }
+
+  private printBanner(port: number) {
+    console.clear();
+
+    console.log(
+      pc.bold(
+        pc.bgBlue(pc.white("MOCKLITE ")) +
+          "v" +
+          pc.bold(pc.bgBlue(pc.white(version)))
+      )
+    );
+    console.log(pc.dim(`Server running at http://localhost:${port}`));
+
+    // Network Status
+    if (this.config.delay || this.config.errorRate) {
+      const status = [];
+      if (this.config.delay) status.push(`Delay: ${this.config.delay}ms`);
+      if (this.config.errorRate)
+        status.push(`Chaos: ${this.config.errorRate * 100}%`);
+      console.log(pc.yellow(`⚠️  Network Simulation: ${status.join(", ")}`));
+    }
+
+    // Bikin Tabel Endpoint
+    const table = new Table({
+      head: [pc.cyan("Method"), pc.cyan("Endpoint"), pc.cyan("Features")],
+      style: { head: [], border: [] }, // Minimalist style
+    });
+
+    // Loop config untuk isi tabel
+    this.config.schema.forEach((t) => {
+      const relations = Object.values(t.fields).filter(
+        (f) => typeof f === "string" && f.startsWith("fk:")
+      ).length;
+
+      const features = [];
+      if (t.seed) features.push(`Seed: ${t.seed}`);
+      if (relations > 0) features.push(`Rel: ${relations}`);
+
+      // Push row ke tabel
+      table.push(
+        ["GET, POST", `/${t.table}`, pc.dim(features.join(", "))],
+        [pc.dim("GET, PUT, DEL"), pc.dim(`/${t.table}/:id`), ""]
+      );
+    });
+
+    console.log(table.toString());
+    console.log(pc.dim("\nShortcuts:"));
+    console.log(
+      `  ${pc.bold("s")} ${pc.dim("seed")}   ` +
+        `  ${pc.bold("c")} ${pc.dim("clear")}   ` +
+        `  ${pc.bold("q")} ${pc.dim("quit")}`
+    );
+    console.log(pc.dim("--------------------------------------------------"));
+  }
+
+  private setupInteractiveMode(port: number) {
+    if (process.stdin.isTTY) {
+      process.stdin.setRawMode(true);
+      process.stdin.resume();
+      process.stdin.setEncoding("utf8");
+
+      process.stdin.on("data", async (key: Buffer | string) => {
+        const char = key.toString();
+
+        // q or Ctrl+C to quit
+        if (char === "q" || char === "\u0003") {
+          console.log(pc.yellow("\nShutting down..."));
+          process.exit(0);
+        }
+
+        // c to clear
+        if (char === "c") {
+          this.printBanner(port);
+        }
+
+        // s to re-seed
+        if (char === "s") {
+          console.log(pc.cyan("\n🔄 Re-seeding database..."));
+          const seeder = new Seeder(this.db);
+          await seeder.clear(this.config);
+          await seeder.run(this.config);
+          console.log(
+            pc.dim("--------------------------------------------------")
+          );
+        }
+      });
+    }
   }
 }

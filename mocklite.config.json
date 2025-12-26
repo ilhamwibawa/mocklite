@@ -1,6 +1,8 @@
 {
   "port": 3000,
   "database": "sqlite",
+  "delay": 1000,
+  "errorRate": 0.1,
   "schema": [
     {
       "table": "users",
@@ -11,11 +13,7 @@
         "email": "faker.internet.email",
         "role": {
           "type": "enum",
-          "values": [
-            "admin",
-            "editor",
-            "viewer"
-          ]
+          "values": ["admin", "editor", "viewer"]
         },
         "isActive": {
           "type": "faker.datatype.boolean",

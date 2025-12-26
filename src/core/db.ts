@@ -1,6 +1,11 @@
 // src/core/db.ts
 import Database from "better-sqlite3";
-import { Kysely, SqliteDialect, ParseJSONResultsPlugin } from "kysely";
+import {
+  Kysely,
+  SqliteDialect,
+  ParseJSONResultsPlugin,
+  CreateTableBuilder,
+} from "kysely";
 import fs from "fs-extra";
 import path from "path";
 import pc from "picocolors";
@@ -47,11 +52,15 @@ export class MockDatabase {
   }
 
   // Helper method to translate Configuration to Kysely SQL
-  private parseField(builder: any, name: string, def: FieldType) {
+  private parseField(
+    builder: CreateTableBuilder<any, any>,
+    name: string,
+    def: FieldType
+  ) {
     // Case 1: Simple String definition (e.g., "pk", "fk:...", "faker...")
     if (typeof def === "string") {
       if (def === "pk") {
-        return builder.addColumn(name, "integer", (col: any) =>
+        return builder.addColumn(name, "integer", (col) =>
           col.primaryKey().autoIncrement()
         );
       }
@@ -68,7 +77,7 @@ export class MockDatabase {
         const [targetTable, targetCol] = target.split(".");
 
         // Assume Foreign Key is an integer for safety
-        return builder.addColumn(name, "integer", (col: any) =>
+        return builder.addColumn(name, "integer", (col) =>
           col.references(`${targetTable}.${targetCol}`).onDelete("cascade")
         );
       }

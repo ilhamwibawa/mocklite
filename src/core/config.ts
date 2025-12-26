@@ -3,8 +3,12 @@ import path from "path";
 import pc from "picocolors";
 import type { MockliteConfig } from "./types";
 
-export async function loadConfig(): Promise<MockliteConfig | null> {
-  const configPath = path.resolve(process.cwd(), "mocklite.config.json");
+export async function loadConfig(
+  customPath?: string
+): Promise<MockliteConfig | null> {
+  const configPath = customPath
+    ? path.resolve(process.cwd(), customPath)
+    : path.resolve(process.cwd(), "mocklite.config.json");
 
   if (!(await fs.pathExists(configPath))) {
     console.error(pc.red("❌ mocklite.config.json not found."));

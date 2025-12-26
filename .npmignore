@@ -1,0 +1,18 @@
+# Abaikan folder source & config dev
+src/
+ui/
+.github/
+.vscode/
+.mocklite/
+snapshots/
+
+# Abaikan file config dev
+tsconfig.json
+tsup.config.ts
+bun.lockb
+pnpm-lock.yaml
+yarn.lock
+.gitignore
+
+# Pastikan dist JANGAN di-ignore (karena itu yang mau kita kirim)
+!dist/

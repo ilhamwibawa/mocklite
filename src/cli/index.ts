@@ -13,8 +13,18 @@ cli
 
 // Define the 'dev' command
 cli
-  .command("dev", "Start the mock server")
+  .command("dev", "Start the mock server in development mode")
   .option("--port <port>", "Port to listen on", { default: 3000 })
+  .option("--schema <path>", "Path to custom config file")
+  .action(async (options) => {
+    await devCommand(options);
+  });
+
+// Define the 'start' command (Production-like alias)
+cli
+  .command("start", "Start the mock server")
+  .option("--port <port>", "Port to listen on", { default: 3000 })
+  .option("--schema <path>", "Path to custom config file")
   .action(async (options) => {
     await devCommand(options);
   });

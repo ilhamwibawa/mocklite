@@ -4,10 +4,10 @@ import { Seeder } from "../../core/seeder";
 import { MockServer } from "../../core/server";
 import pc from "picocolors";
 
-export async function devCommand(options: { port: number }) {
+export async function devCommand(options: { port: number; schema?: string }) {
   console.log(pc.cyan(`🚀 Starting MockLite Dev Server...`));
 
-  const config = await loadConfig();
+  const config = await loadConfig(options.schema);
   if (!config) return;
 
   const dbEngine = new MockDatabase();

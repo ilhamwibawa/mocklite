@@ -1,6 +1,10 @@
 export type FieldType =
   | string
-  | { type: string; options?: any; values?: any[] };
+  | {
+      type: string;
+      options?: Record<string, unknown>;
+      values?: (string | number)[];
+    };
 
 export interface TableSchema {
   table: string;
@@ -10,6 +14,8 @@ export interface TableSchema {
 
 export interface MockliteConfig {
   port?: number;
+  delay?: number;
+  errorRate?: number;
   database?: "sqlite";
   schema: TableSchema[];
 }

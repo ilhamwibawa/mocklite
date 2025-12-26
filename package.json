@@ -1,8 +1,34 @@
 {
-  "name": "mocklite",
+  "name": "@ilhamwibawa/mocklite",
+  "description": "Mock server for API development",
+  "main": "dist/mocklite.cjs",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "mock",
+    "server",
+    "sqlite",
+    "api",
+    "faker"
+  ],
+  "author": "Ilham Wibawa",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ilhamwibawa/mocklite.git"
+  },
+  "homepage": "https://github.com/ilhamwibawa/mocklite#readme",
+  "bugs": {
+    "url": "https://github.com/ilhamwibawa/mocklite/issues"
+  },
   "module": "index.ts",
   "type": "module",
-  "private": true,
+  "types": "./dist/mocklite.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
   "version": "0.0.1",
   "bin": {
     "mocklite": "./dist/mocklite.cjs"
@@ -29,7 +55,11 @@
     "@hono/node-server": "^1.19.7",
     "better-sqlite3": "^12.5.0",
     "cac": "^6.7.14",
+    "cli-table3": "^0.6.5",
     "hono": "^4.11.2",
     "kysely": "^0.28.9"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

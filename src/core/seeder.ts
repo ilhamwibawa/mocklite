@@ -6,6 +6,19 @@ import type { MockliteConfig, FieldType } from "./types";
 export class Seeder {
   constructor(private db: Kysely<any>) {}
 
+  async clear(config: MockliteConfig) {
+    // Kita hapus data dari tabel anak dulu (posts) baru induk (users)
+    // Tapi karena ada ON DELETE CASCADE, hapus induk saja cukup.
+    // Namun biar aman, kita loop semua.
+    for (const table of config.schema) {
+      try {
+        await this.db.deleteFrom(table.table).execute();
+      } catch (e) {
+        // Ignore error (misal tabel belum ada)
+      }
+    }
+  }
+
   async run(config: MockliteConfig) {
     console.log(pc.cyan("🌱 Seeding database..."));
 
@@ -14,7 +27,7 @@ export class Seeder {
       const count = table.seed || 0;
       if (count === 0) continue;
 
-      const rows: any[] = [];
+      const rows: Record<string, unknown>[] = [];
       console.log(pc.dim(`   Generaring ${count} rows for ${table.table}...`));
 
       for (let i = 0; i < count; i++) {
@@ -32,7 +45,7 @@ export class Seeder {
   }
 
   private async generateRow(fields: Record<string, FieldType>) {
-    const row: any = {};
+    const row: Record<string, unknown> = {};
 
     for (const [key, def] of Object.entries(fields)) {
       // 1. Skip Primary Key (Auto Increment)
@@ -55,7 +68,7 @@ export class Seeder {
         const result = await this.db
           .selectFrom(targetTable)
           .select(targetCol)
-          .orderBy(this.db.fn("RANDOM" as any, []))
+          .orderBy(this.db.fn("RANDOM", []))
           .limit(1)
           .executeTakeFirst();
 
@@ -76,7 +89,7 @@ export class Seeder {
     return row;
   }
 
-  private resolveValue(def: FieldType): any {
+  private resolveValue(def: FieldType): unknown {
     // Case A: String Configuration (e.g., "faker.person.fullName")
     if (typeof def === "string") {
       if (def.startsWith("faker.")) {
@@ -101,7 +114,7 @@ export class Seeder {
   }
 
   // Helper to convert string path "faker.person.name" into a function call
-  private executeFakerPath(pathStr: string, options?: any) {
+  private executeFakerPath(pathStr: string, options?: Record<string, unknown>) {
     const path = pathStr.replace("faker.", "").split(".");
     let generator: any = faker;
 
