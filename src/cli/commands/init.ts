@@ -3,6 +3,10 @@ import path from "path";
 import pc from "picocolors";
 import { DEFAULT_CONFIG } from "../../core/defaults";
 
+/**
+ * Initializes a new Mocklite project by creating a default configuration file.
+ * Helper to bootstrap a new project.
+ */
 export async function initCommand() {
   const fileName = "mocklite.config.json";
   const targetPath = path.resolve(process.cwd(), fileName);

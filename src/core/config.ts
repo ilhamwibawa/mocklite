@@ -3,6 +3,12 @@ import path from "path";
 import pc from "picocolors";
 import type { MockliteConfig } from "./types";
 
+/**
+ * Loads the Mocklite configuration from a file.
+ *
+ * @param customPath - Optional custom path to the configuration file.
+ * @returns A promise that resolves to the Mocklite configuration or null if not found/error.
+ */
 export async function loadConfig(
   customPath?: string
 ): Promise<MockliteConfig | null> {

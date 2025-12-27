@@ -4,6 +4,12 @@ import { Seeder } from "../../core/seeder";
 import { MockServer } from "../../core/server";
 import pc from "picocolors";
 
+/**
+ * Starts the Mocklite server in development mode.
+ * Loads config, sets up the database, seeds data, and starts the server.
+ *
+ * @param options - CLI options including port and schema path.
+ */
 export async function devCommand(options: { port: number; schema?: string }) {
   console.log(pc.cyan(`🚀 Starting MockLite Dev Server...`));
 

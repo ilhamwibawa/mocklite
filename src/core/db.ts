@@ -11,10 +11,19 @@ import path from "path";
 import pc from "picocolors";
 import type { MockliteConfig, FieldType } from "./types";
 
+/**
+ * Manages the SQLite database operations for Mocklite.
+ * Handles database connection, schema setup, and query execution using Kysely.
+ */
 export class MockDatabase {
   private db: Kysely<any>;
   private dbPath: string;
 
+  /**
+   * Initializes a new instance of the MockDatabase class.
+   * Sets up the database file in the .mocklite directory and initializes the Kysely instance.
+   * Resets the database on every start.
+   */
   constructor() {
     // Store the database in the .mocklite folder to keep it hidden
     const dbDir = path.resolve(process.cwd(), ".mocklite");
@@ -35,6 +44,12 @@ export class MockDatabase {
     });
   }
 
+  /**
+   * Sets up the database schema based on the provided configuration.
+   * Creates tables and columns as defined in the config.
+   *
+   * @param config - The Mocklite configuration object containing the schema definition.
+   */
   async setup(config: MockliteConfig) {
     console.log(pc.cyan("⚙️  Setting up database schema..."));
 
@@ -51,7 +66,14 @@ export class MockDatabase {
     }
   }
 
-  // Helper method to translate Configuration to Kysely SQL
+  /**
+   * Helper method to translate a field configuration into a Kysely SQL column definition.
+   *
+   * @param builder - The Kysely CreateTableBuilder instance.
+   * @param name - The name of the field/column.
+   * @param def - The field definition (string or object).
+   * @returns The updated CreateTableBuilder instance.
+   */
   private parseField(
     builder: CreateTableBuilder<any, any>,
     name: string,
@@ -104,6 +126,11 @@ export class MockDatabase {
     return builder.addColumn(name, "text");
   }
 
+  /**
+   * Returns the underlying Kysely database instance.
+   *
+   * @returns The Kysely instance.
+   */
   getInstance() {
     return this.db;
   }

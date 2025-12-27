@@ -1,3 +1,7 @@
+/**
+ * The default configuration for Mocklite.
+ * Used when no configuration file is found or to initialize a new one.
+ */
 export const DEFAULT_CONFIG = {
   port: 3000,
   database: "sqlite",

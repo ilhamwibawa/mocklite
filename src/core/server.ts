@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
-import { Kysely } from "kysely";
+import { Kysely, type SelectQueryBuilder } from "kysely";
 import pc from "picocolors";
 import type { MockliteConfig } from "./types";
 import { jsonArrayFrom, jsonObjectFrom } from "kysely/helpers/sqlite";
@@ -10,9 +10,20 @@ import { version } from "../../package.json";
 import Table from "cli-table3";
 import { Seeder } from "./seeder";
 
+/**
+ * The main Mocklite server class.
+ * Handles API route generation, server lifecycle, and request handling.
+ */
 export class MockServer {
   private app: Hono;
 
+  /**
+   * Initializes a new instance of the MockServer class.
+   * Sets up the Hono app, middleware (logging, CORS, network simulation), and routes.
+   *
+   * @param db - The Kysely database instance.
+   * @param config - The Mocklite configuration object.
+   */
   constructor(private db: Kysely<any>, private config: MockliteConfig) {
     this.app = new Hono();
 
@@ -72,6 +83,14 @@ export class MockServer {
     this.generateRoutes();
   }
 
+  /**
+   * Transforms database results to match the desired output format.
+   * Specifically handles boolean conversion from 0/1 to true/false.
+   *
+   * @param tableName - The name of the table the data belongs to.
+   * @param data - The data returned from the database.
+   * @returns The transformed data.
+   */
   private transformResult<T>(tableName: string, data: T | T[]) {
     const tableDef = this.config.schema.find((t) => t.table === tableName);
     if (!tableDef) return data;
@@ -107,6 +126,10 @@ export class MockServer {
     return transformItem(data);
   }
 
+  /**
+   * Generates API routes for all tables defined in the configuration.
+   * Creates GET (list & detail), POST, PUT, and DELETE endpoints.
+   */
   private generateRoutes() {
     this.app.get("/", (c) =>
       c.json({
@@ -118,8 +141,6 @@ export class MockServer {
     for (const table of this.config.schema) {
       const tableName = table.table;
 
-      // 1. GET List endpoint
-      // 1. GET List endpoint
       this.app.get(`/${tableName}`, async (c) => {
         const queryParams = c.req.query();
         const { include, page, limit, ...filters } = queryParams;
@@ -129,18 +150,14 @@ export class MockServer {
         const limitNum = Number(limit) || 10;
         const offset = (pageNum - 1) * limitNum;
 
-        // Base query for counting
         let countQuery = this.db
           .selectFrom(tableName)
           .select((eb: any) => eb.fn.countAll().as("total"));
 
-        // Base query for data
         let dataQuery = this.db.selectFrom(tableName).selectAll();
 
         // APPLY FILTERS
-        // APPLY FILTERS
         for (const [key, value] of Object.entries(filters)) {
-          // Check if field exists in schema to prevent SQL injection or errors
           const fieldDef = table.fields[key];
           const isId = key === "id";
 
@@ -148,17 +165,13 @@ export class MockServer {
             let op = "=";
             let val: unknown = value;
 
-            // Logic to determine if we should use LIKE (Partial Match)
             if (!isId) {
-              // If it's a string config that doesn't explicitly look like a boolean/number
-              // OR if it's an object config without 'boolean'/'number' type
               const isString =
                 typeof fieldDef === "string" &&
                 !fieldDef.includes("boolean") &&
                 !fieldDef.includes("number") &&
                 !fieldDef.includes("int");
 
-              // You can expand this logic based on your types
               if (isString) {
                 op = "like";
                 val = `%${value}%`;
@@ -170,11 +183,8 @@ export class MockServer {
           }
         }
 
-        // 1. Get total count
         const countResult = await countQuery.executeTakeFirst();
         const total = Number((countResult as any)?.total || 0);
-
-        // 2. Prepare query for data
 
         // RELATIONAL LOGIC HANDLING
         if (includeParam) {
@@ -185,7 +195,6 @@ export class MockServer {
           );
         }
 
-        // Apply pagination
         dataQuery = dataQuery.limit(limitNum).offset(offset);
 
         const data = await dataQuery.execute();
@@ -201,10 +210,9 @@ export class MockServer {
         });
       });
 
-      // 2. GET Detail endpoint
       this.app.get(`/${tableName}/:id`, async (c) => {
         const id = c.req.param("id");
-        const includeParam = c.req.query("include"); // Support include parameter in detail view
+        const includeParam = c.req.query("include");
 
         let query = this.db
           .selectFrom(tableName)
@@ -220,7 +228,6 @@ export class MockServer {
         return c.json(this.transformResult(tableName, data));
       });
 
-      // 3. POST Create endpoint
       this.app.post(`/${tableName}`, async (c) => {
         const body = await c.req.json();
 
@@ -244,7 +251,6 @@ export class MockServer {
         }
       });
 
-      // 4. PUT Update endpoint
       this.app.put(`/${tableName}/:id`, async (c) => {
         const id = c.req.param("id");
         const body = await c.req.json();
@@ -273,7 +279,6 @@ export class MockServer {
         }
       });
 
-      // 5. DELETE Delete endpoint
       this.app.delete(`/${tableName}/:id`, async (c) => {
         const id = c.req.param("id");
 
@@ -297,14 +302,30 @@ export class MockServer {
     }
   }
 
-  private applyRelation(query: any, currentTable: string, targetParam: string) {
-    // Helper to retrieve the list of columns from the schema configuration
+  /**
+   * Applies relationship joins (BelongsTo or HasMany) to the query based on the 'include' parameter.
+   *
+   * @param query - The current Kysely query builder.
+   * @param currentTable - The name of the current table being queried.
+   * @param targetParam - The 'include' parameter value (target resource).
+   * @returns The updated query builder with the relationship included.
+   */
+  private applyRelation(
+    query: SelectQueryBuilder<
+      any,
+      string,
+      {
+        [x: string]: any;
+      }
+    >,
+    currentTable: string,
+    targetParam: string
+  ) {
     const getColumns = (tableName: string) => {
       const tableDef = this.config.schema.find((t) => t.table === tableName);
       return tableDef ? Object.keys(tableDef.fields) : [];
     };
 
-    // CASE A: Belongs To relationship (e.g., posts -> include users/author)
     const currentTableConfig = this.config.schema.find(
       (t) => t.table === currentTable
     );
@@ -326,7 +347,6 @@ export class MockServer {
               throw new Error(`Invalid FK definition: ${def}`);
             }
 
-            // Explicitly select target columns
             const columns = getColumns(targetTable);
 
             return query.select((eb: any) => [
@@ -346,7 +366,6 @@ export class MockServer {
       }
     }
 
-    // CASE B: Has Many relationship (e.g., users -> include posts)
     const targetTableConfig = this.config.schema.find(
       (t) => t.table === targetParam
     );
@@ -362,14 +381,13 @@ export class MockServer {
               )
             );
 
-            // Explicitly select target columns
             const columns = getColumns(targetParam);
 
             return query.select((eb: any) => [
               jsonArrayFrom(
                 eb
                   .selectFrom(targetParam)
-                  .select(columns) // Select specific column array
+                  .select(columns)
                   .whereRef(
                     `${targetParam}.${field}`,
                     "=",
@@ -385,6 +403,12 @@ export class MockServer {
     return query;
   }
 
+  /**
+   * Starts the HTTP server on the specified port.
+   * Also sets up interactive CLI mode.
+   *
+   * @param port - The port number to listen on.
+   */
   start(port: number) {
     serve({
       fetch: this.app.fetch,
@@ -395,6 +419,11 @@ export class MockServer {
     this.setupInteractiveMode(port);
   }
 
+  /**
+   * Prints the startup banner and server status to the console.
+   *
+   * @param port - The port number the server is running on.
+   */
   private printBanner(port: number) {
     console.clear();
 
@@ -449,6 +478,11 @@ export class MockServer {
     console.log(pc.dim("--------------------------------------------------"));
   }
 
+  /**
+   * Sets up interactive CLI mode for controlling the server (re-seed, clear, quit).
+   *
+   * @param port - The port number (used for re-printing the banner).
+   */
   private setupInteractiveMode(port: number) {
     if (process.stdin.isTTY) {
       process.stdin.setRawMode(true);

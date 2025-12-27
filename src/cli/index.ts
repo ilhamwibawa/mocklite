@@ -4,6 +4,10 @@ import { version } from "../../package.json";
 import { initCommand } from "./commands/init";
 import { devCommand } from "./commands/dev";
 
+/**
+ * The main CLI instance for Mocklite.
+ * Defines commands and options using cac.
+ */
 const cli = cac("mocklite");
 
 // Define the 'init' command
