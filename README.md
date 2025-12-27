@@ -1,8 +1,8 @@
-# @ilhamwibawa/mocklite
+# @mocklite/cli
 
 **Zero-Configuration, SQLite-based Mock Server for Modern Frontend Development.**
 
-[![npm version](https://img.shields.io/npm/v/@ilhamwibawa/mocklite.svg)](https://www.npmjs.com/package/@ilhamwibawa/mocklite)
+[![npm version](https://img.shields.io/npm/v/@mocklite/cli.svg)](https://www.npmjs.com/package/@mocklite/cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 MockLite is a powerful, lightweight mock server designed to speed up frontend development. It auto-generates a full REST API based on a simple JSON schema, populates it with realistic data using [Faker.js](https://fakerjs.dev), and even simulates network conditions like slow connections or chaos modes.
@@ -29,10 +29,10 @@ You can run MockLite directly using `npx` or install it globally.
 
 ```bash
 # Run directly (Recommended)
-npx @ilhamwibawa/mocklite init
+npx @mocklite/cli init
 
 # Or install globally
-npm install -g @ilhamwibawa/mocklite
+npm install -g @mocklite/cli
 ```
 
 ### 2. Initialize Project
@@ -40,7 +40,7 @@ npm install -g @ilhamwibawa/mocklite
 Run the initialization command in your project root. This creates a starter `mocklite.config.json` file.
 
 ```bash
-npx @ilhamwibawa/mocklite init
+npx @mocklite/cli init
 ```
 
 ### 3. Start the Server
@@ -48,7 +48,7 @@ npx @ilhamwibawa/mocklite init
 Start the server using your configuration.
 
 ```bash
-npx @ilhamwibawa/mocklite start
+npx @mocklite/cli start
 ```
 
 You will see output indicating the server is running, listing available endpoints and active network simulations.
@@ -167,7 +167,7 @@ Test how your app handles slow networks or server crashes.
 **Example:**
 
 ```bash
-npx @ilhamwibawa/mocklite start --port 8080 --schema ./configs/v1.json
+npx @mocklite/cli start --port 8080 --schema ./configs/v1.json
 ```
 
 **Interactive Shortcuts:**
