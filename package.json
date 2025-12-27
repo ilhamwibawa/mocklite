@@ -1,5 +1,5 @@
 {
-  "name": "@ilhamwibawa/mocklite",
+  "name": "@mocklite/cli",
   "description": "Mock server for API development",
   "main": "dist/mocklite.cjs",
   "files": [
